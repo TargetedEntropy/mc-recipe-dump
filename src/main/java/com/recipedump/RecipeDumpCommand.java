@@ -50,11 +50,19 @@ public class RecipeDumpCommand {
         Collection<Recipe<?>> recipes = recipeManager.getRecipes();
 
         for (Recipe<?> recipe : recipes) {
-            JsonObject recipeJson = new JsonObject();
+            try {
+                JsonObject recipeJson = new JsonObject();
 
-            recipeJson.addProperty("id", recipe.getId().toString());
-            recipeJson.addProperty("type", BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType()).toString());
-            recipeJson.addProperty("group", recipe.getGroup());
+                recipeJson.addProperty("id", recipe.getId().toString());
+
+                ResourceLocation recipeTypeKey = BuiltInRegistries.RECIPE_TYPE.getKey(recipe.getType());
+                if (recipeTypeKey != null) {
+                    recipeJson.addProperty("type", recipeTypeKey.toString());
+                } else {
+                    recipeJson.addProperty("type", "unknown");
+                }
+
+                recipeJson.addProperty("group", recipe.getGroup());
 
             if (recipe instanceof ShapedRecipe shapedRecipe) {
                 recipeJson.addProperty("recipe_class", "shaped");
@@ -169,7 +177,10 @@ public class RecipeDumpCommand {
                 }
             }
 
-            allRecipes.add(recipeJson);
+                allRecipes.add(recipeJson);
+            } catch (Exception e) {
+                LOGGER.warn("Failed to serialize recipe: {} - {}", recipe.getId(), e.getMessage());
+            }
         }
 
         File outputFile = new File("recipes_dump.json");
@@ -199,7 +210,14 @@ public class RecipeDumpCommand {
 
     private JsonObject serializeItemStack(ItemStack stack) {
         JsonObject json = new JsonObject();
-        json.addProperty("item", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+
+        ResourceLocation itemKey = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (itemKey != null) {
+            json.addProperty("item", itemKey.toString());
+        } else {
+            json.addProperty("item", "unknown");
+        }
+
         json.addProperty("count", stack.getCount());
 
         if (stack.hasTag()) {
